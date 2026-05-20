@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="IATF 16949 Audit Mandays Calculator — 6th Edition apportionment method with multi-site support">
+  <meta property="og:title" content="IATF 16949 Audit Mandays Calculator">
+  <meta property="og:description" content="Calculate audit mandays per IATF 16949 Rules 6th Edition (Jan 2025). Supports Manufacturing Sites + SA-RSL apportionment.">
+  <title>IATF 16949 Audit Mandays Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a3a32'/%3E%3Ctext x='50' y='70' font-family='Georgia,serif' font-size='60' font-weight='700' text-anchor='middle' fill='%23faf6ee'%3EI%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ink: #14171a;
+      --ink-soft: #3d3f43;
+      --muted: #6b6760;
+      --paper: #faf6ee;
+      --paper-2: #f3eddf;
+      --paper-3: #ebe3cf;
+      --border: #d9d0bc;
+      --border-strong: #b8ad95;
+      --accent: #1a3a32;
+      --accent-soft: #2a5448;
+      --highlight: #b8451f;
+      --danger: #a02817;
+      --good: #1a3a32;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(184, 173, 149, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(184, 69, 31, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 48px 32px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header.masthead {
+      border-bottom: 1.5px solid var(--ink);
+      padding-bottom: 28px;
+      margin-bottom: 48px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 32px;
+      align-items: end;
+    }
+    .masthead-left .eyebrow {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .masthead-left h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 0;
+      font-weight: 400;
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.0;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .masthead-left h1 em {
+      font-style: italic;
+      font-variation-settings: 'opsz' 144, 'SOFT' 50;
+      color: var(--accent);
+    }
+    .masthead-left .subtitle {
+      font-family: 'Fraunces', Georgia, serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: 17px;
+      color: var(--ink-soft);
+      margin-top: 12px;
+      max-width: 560px;
+    }
+    .masthead-right {
+      text-align: right;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .masthead-right .ref-label {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .masthead-right .ref-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    /* Sections */
+    section { margin-bottom: 56px; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .section-num {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 14px;
+      color: var(--highlight);
+      margin-right: 12px;
+    }
+    .section-title {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .section-hint {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* Config grid */
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+    .field-label {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    select, input[type=number], input[type=text] {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--paper);
+      border: 0.5px solid var(--border-strong);
+      border-radius: 0;
+      padding: 9px 12px;
+      width: 100%;
+      transition: border-color 0.15s, background 0.15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2314171a' stroke-width='1.2' fill='none' stroke-linecap='round'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    select:hover, input:hover { border-color: var(--ink-soft); }
+    select:focus, input:focus { outline: none; border-color: var(--accent); background: #fff; }
+
+    /* Sites table */
+    .sites-wrap {
+      border: 0.5px solid var(--border-strong);
+      background: var(--paper);
+      overflow-x: auto;
+    }
+    table.sites {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    table.sites thead th {
+      background: var(--paper-2);
+      border-bottom: 0.5px solid var(--border-strong);
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+    table.sites thead th.num { text-align: right; }
+    table.sites tbody tr {
+      border-bottom: 0.5px solid var(--border);
+    }
+    table.sites tbody tr:last-child { border-bottom: none; }
+    table.sites tbody td {
+      padding: 8px 10px;
+      vertical-align: middle;
+    }
+    table.sites td.num { text-align: right; }
+    table.sites td input, table.sites td select {
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    table.sites td .effective {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--accent);
+      padding-right: 8px;
+    }
+    .row-actions { width: 40px; text-align: center; }
+    .icon-btn {
+      width: 30px; height: 30px;
+      border: 0.5px solid var(--border);
+      background: var(--paper);
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+    .add-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding: 10px 18px;
+      background: var(--paper);
+      border: 0.5px solid var(--ink);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: all 0.15s;
+    }
+    .add-row:hover { background: var(--ink); color: var(--paper); }
+    .add-row svg { width: 14px; height: 14px; }
+
+    /* Results */
+    .results {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr;
+      gap: 0;
+      border: 0.5px solid var(--ink);
+      background: var(--paper);
+    }
+    .result-card {
+      padding: 28px 24px;
+      border-right: 0.5px solid var(--border);
+      position: relative;
+    }
+    .result-card:last-child { border-right: none; }
+    .result-card.primary {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .result-card .label {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .result-card.primary .label { color: rgba(250, 246, 238, 0.65); }
+    .result-card .value {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: 52px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      font-variation-settings: 'opsz' 144;
+    }
+    .result-card.primary .value { color: var(--paper); }
+    .result-card .value-unit {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-left: 6px;
+      letter-spacing: 0;
+    }
+    .result-card.primary .value-unit { color: rgba(250, 246, 238, 0.6); }
+    .result-card .sublabel {
+      margin-top: 8px;
+      font-size: 12px;
+      font-style: italic;
+      color: var(--muted);
+      font-family: 'Fraunces', serif;
+    }
+    .result-card.primary .sublabel { color: rgba(250, 246, 238, 0.7); }
+
+    /* Per-site breakdown */
+    .breakdown {
+      margin-top: 24px;
+      border: 0.5px solid var(--border-strong);
+      background: var(--paper);
+    }
+    .breakdown table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .breakdown th {
+      background: var(--paper-2);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 0.5px solid var(--border-strong);
+    }
+    .breakdown th.num { text-align: right; }
+    .breakdown td {
+      padding: 10px 14px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .breakdown td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+    .breakdown tbody tr:last-child td { border-bottom: none; }
+    .breakdown tr.subtotal td { background: var(--paper-2); font-weight: 500; border-top: 0.5px solid var(--border-strong); }
+
+    /* Log */
+    .log-box {
+      background: #1a1d20;
+      color: #e8e4d8;
+      padding: 24px 28px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      border: 0.5px solid var(--ink);
+    }
+    .log-box .log-section { color: #d4a85f; }
+    .log-box .log-emph { color: #fff; font-weight: 500; }
+    .log-box .log-result { color: #98c97e; font-weight: 500; }
+
+    /* Action bar */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border: 0.5px solid var(--ink);
+      background: var(--paper);
+      color: var(--ink);
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--ink); color: var(--paper); }
+    .btn.primary {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+    .btn svg { width: 14px; height: 14px; }
+
+    /* Notes / disclaimer */
+    .notes {
+      background: var(--paper-2);
+      border-left: 3px solid var(--highlight);
+      padding: 18px 22px;
+      margin-top: 32px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.75;
+    }
+    .notes strong { font-family: 'Fraunces', serif; font-weight: 500; color: var(--ink); }
+    .notes ul { margin: 8px 0 0 18px; }
+    .notes li { margin-bottom: 4px; }
+
+    /* Footer */
+    footer.colophon {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 0.5px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer.colophon .left { font-family: 'Fraunces', serif; font-style: italic; }
+    footer.colophon a { color: var(--accent); text-decoration: none; border-bottom: 0.5px solid var(--accent); }
+
+    /* Drop cap on intro */
+    .intro {
+      font-family: 'Fraunces', serif;
+      font-weight: 300;
+      font-size: 18px;
+      line-height: 1.55;
+      color: var(--ink-soft);
+      max-width: 780px;
+      margin-bottom: 56px;
+      letter-spacing: 0.005em;
+    }
+    .intro::first-letter {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 64px;
+      float: left;
+      line-height: 0.85;
+      margin: 6px 10px 0 0;
+      color: var(--accent);
+      font-variation-settings: 'opsz' 144, 'SOFT' 30;
+    }
+
+    /* Tag */
+    .tag {
+      display: inline-block;
+      padding: 2px 9px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 1px;
+    }
+    .tag.ms { background: var(--accent); color: var(--paper); }
+    .tag.srsl { background: var(--highlight); color: var(--paper); }
+
+    /* Responsive */
+    @media (max-width: 880px) {
+      .page { padding: 28px 18px 60px; }
+      header.masthead { grid-template-columns: 1fr; gap: 18px; }
+      .masthead-right { text-align: left; }
+      .results { grid-template-columns: 1fr 1fr; }
+      .result-card { border-right: none; border-bottom: 0.5px solid var(--border); }
+      .result-card:nth-child(2) { border-right: 0.5px solid var(--border); }
+      .result-card:nth-child(3) { border-right: 0.5px solid var(--border); }
+      .intro { font-size: 16px; }
+      .intro::first-letter { font-size: 52px; }
+    }
+
+    /* Print */
+    @media print {
+      body { background: white; }
+      body::before { display: none; }
+      .page { padding: 0; max-width: none; }
+      .add-row, .row-actions, .actions, .icon-btn { display: none !important; }
+      .log-box { background: #f5f5f5; color: #222; border: 0.5px solid #999; }
+      .result-card.primary { background: #1a1d20 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      section { page-break-inside: avoid; }
+      footer.colophon { page-break-before: avoid; }
+      h1 { color: black !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="masthead">
+      <div class="masthead-left">
+        <div class="eyebrow">Audit Mandays Calculator · IATF Rules 6<sup style="font-size:8px">th</sup> Edition</div>
+        <h1>IATF <em>16949</em><br>mandays estimator</h1>
+        <div class="subtitle">Multi-site apportionment per IATF 16949 Rules 6<sup>th</sup> Edition (effective January 2025), with effective FTE breakdown for Manufacturing Sites and Stand-Alone Remote Support Locations.</div>
+      </div>
+      <div class="masthead-right">
+        <div class="ref-label">Reference</div>
+        <div class="ref-value">IATF&nbsp;Rules&nbsp;6th&nbsp;Ed.</div>
+        <div class="ref-value">IAF&nbsp;MD&nbsp;5:2023</div>
+        <div style="margin-top:12px" class="ref-label">Version</div>
+        <div class="ref-value" id="versionTag">v0.1 · preview</div>
+        <div style="margin-top:12px" class="ref-label">Generated</div>
+        <div class="ref-value" id="generatedAt">—</div>
+      </div>
+    </header>
+
+    <p class="intro">This calculator applies the apportionment method outlined in IATF Rules 6<sup>th</sup> Edition, Section 5, to estimate the minimum audit duration for a Quality Management System certified to IATF&nbsp;16949. Effective FTE per site is derived from the personnel categories specified in IAF MD 5:2023, with reductions documented in the calculation log for accreditation traceability. This tool is illustrative — final audit duration is determined by the certification body upon contract review.</p>
+
+    <!-- CONFIGURATION -->
+    <section>
+      <div class="section-head">
+        <div class="section-title"><span class="section-num">§ 01</span>Configuration</div>
+        <div class="section-hint">audit-wide parameters</div>
+      </div>
+      <div class="config-grid">
+        <div class="field">
+          <div class="field-label">Audit type</div>
+          <select id="auditType">
+            <option value="initial">Initial (Stage 1 + 2)</option>
+            <option value="surveillance">Surveillance (annual)</option>
+            <option value="recert">Recertification</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Repetitive factor</div>
+          <select id="repFactor">
+            <option value="0.5" selected>0.5 — standard reduction</option>
+            <option value="0.33">0.33 — high repetition</option>
+            <option value="0.25">0.25 — very high repetition</option>
+            <option value="1">1.0 — no reduction</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Contract inclusion</div>
+          <select id="contractFactor">
+            <option value="1" selected>1.0 — fully included</option>
+            <option value="0.5">0.5 — partial</option>
+            <option value="0">0 — excluded</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Total reduction</div>
+          <select id="reduction">
+            <option value="0" selected>0% — none applied</option>
+            <option value="-10">−10% — mature system</option>
+            <option value="-15">−15% — prior cert + mature</option>
+            <option value="-20">−20% — combined reductions</option>
+            <option value="-30">−30% — IATF maximum</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- SITES -->
+    <section>
+      <div class="section-head">
+        <div class="section-title"><span class="section-num">§ 02</span>Sites in scope</div>
+        <div class="section-hint">manufacturing sites + stand-alone remote support locations</div>
+      </div>
+
+      <div class="sites-wrap">
+        <table class="sites">
+          <thead>
+            <tr>
+              <th style="width: 22%">Site name</th>
+              <th style="width: 100px">Type</th>
+              <th class="num" style="width: 70px">Shifts</th>
+              <th class="num" style="width: 90px">Core FTE</th>
+              <th class="num" style="width: 90px">Support FTE</th>
+              <th class="num" style="width: 90px">Repetitive</th>
+              <th class="num" style="width: 90px">Contract</th>
+              <th class="num" style="width: 100px">Effective FTE</th>
+              <th class="row-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="sitesBody"></tbody>
+        </table>
+      </div>
+
+      <button class="add-row" id="addSite">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3v10M3 8h10" stroke-linecap="round"/></svg>
+        Add site
+      </button>
+    </section>
+
+    <!-- RESULTS -->
+    <section>
+      <div class="section-head">
+        <div class="section-title"><span class="section-num">§ 03</span>Audit duration estimate</div>
+        <div class="section-hint">final values rounded to nearest half-day</div>
+      </div>
+
+      <div class="results">
+        <div class="result-card primary">
+          <div class="label">Total mandays</div>
+          <div><span class="value" id="total">—</span><span class="value-unit">days</span></div>
+          <div class="sublabel" id="totalSub">awaiting input</div>
+        </div>
+        <div class="result-card">
+          <div class="label">Manufacturing</div>
+          <div><span class="value" id="msDays">—</span><span class="value-unit">days</span></div>
+          <div class="sublabel">across all MS</div>
+        </div>
+        <div class="result-card">
+          <div class="label">SA-RSL</div>
+          <div><span class="value" id="srslDays">—</span><span class="value-unit">days</span></div>
+          <div class="sublabel" id="srslSub">remote support</div>
+        </div>
+        <div class="result-card">
+          <div class="label">Planning</div>
+          <div><span class="value" id="planningOut">0.5</span><span class="value-unit">day</span></div>
+          <div class="sublabel">off-site, mandatory</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <table>
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Type</th>
+              <th class="num">Own FTE</th>
+              <th class="num">Apportioned</th>
+              <th class="num">Audit FTE</th>
+              <th class="num">Base days</th>
+              <th class="num">Shift adj.</th>
+              <th class="num">Site total</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section>
+      <div class="section-head">
+        <div class="section-title"><span class="section-num">§ 04</span>Calculation log</div>
+        <div class="section-hint">complete derivation for audit traceability</div>
+      </div>
+      <div class="log-box" id="log">—</div>
+
+      <div class="actions">
+        <button class="btn primary" onclick="window.print()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6V2h8v4M4 11H2v-5h12v5h-2M4 11v3h8v-3M4 11h8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Print / Save as PDF
+        </button>
+        <button class="btn" id="exportBtn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v9m0 0L4.5 7.5M8 11l3.5-3.5M2 13h12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Export JSON
+        </button>
+        <button class="btn" id="copyLinkBtn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 9a3 3 0 004.24 0l2.83-2.83a3 3 0 00-4.24-4.24L8.5 3.5M9 7a3 3 0 00-4.24 0L1.93 9.83a3 3 0 004.24 4.24L7.5 12.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Copy share link
+        </button>
+        <button class="btn" id="resetBtn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8a6 6 0 1110 4.5M2 8V4m0 4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Reset to defaults
+        </button>
+      </div>
+
+      <div class="notes">
+        <strong>Notes on methodology</strong>
+        <ul>
+          <li><strong>Apportionment</strong> — SA-RSL employees distributed to Manufacturing Sites by FTE ratio per IATF Rules 6<sup>th</sup> Ed., Section 5.</li>
+          <li><strong>Effective FTE</strong> — core + support + (repetitive × factor) + (contract × factor). Per IAF MD 5:2023.</li>
+          <li><strong>Shift adjustment</strong> — +10% per additional shift, accounting for off-hours verification needs.</li>
+          <li><strong>Minimums</strong> — MS audit ≥ 1.5 days · SA-RSL audit ≥ 0.5 day each · Off-site planning = 0.5 day (mandatory).</li>
+          <li><strong>Reduction cap</strong> — total reduction ≤ 30% per IATF Rules 6<sup>th</sup> Ed., Section 5.3–5.4.</li>
+          <li><strong>Audit type multipliers</strong> — Surveillance = ⅓ · Recertification = ⅔ of initial audit duration.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="colophon">
+      <div class="left">An illustrative tool. Binding audit duration is determined by the certification body.</div>
+      <div class="right">Built for client verification · <a href="https://www.iatfglobaloversight.org/" target="_blank" rel="noopener">iatfglobaloversight.org</a></div>
+    </footer>
+
+  </div>
+
+  <script>
+    // =====================================================
+    // IATF 16949 Mandays Calculator — pure vanilla JS
+    // =====================================================
+
+    // IAF MD 5 Annex A Table QMS 1 — Effective Personnel → Audit Days
+    const QMS_TABLE = [
+      [5, 1.5], [10, 2], [15, 2.5], [25, 3], [45, 4], [65, 5],
+      [85, 6], [125, 7], [175, 8], [275, 9], [425, 10], [625, 11],
+      [875, 12], [1175, 13], [1550, 14], [2025, 15], [2675, 16],
+      [3450, 17], [4350, 18], [5450, 19], [6800, 20], [8500, 21],
+      [10700, 22]
+    ];
+
+    const DEFAULT_SITES = [
+      { name: 'Main Site', type: 'MS', shifts: 2, core: 50, support: 0, repetitive: 0, contract: 0 },
+      { name: 'SRSL — Support', type: 'SRSL', shifts: 1, core: 190, support: 0, repetitive: 0, contract: 0 }
+    ];
+
+    let sites = JSON.parse(JSON.stringify(DEFAULT_SITES));
+
+    // ----- Utilities -----
+    function lookupBase(emp) {
+      if (emp <= 0) return 0;
+      for (const [cap, days] of QMS_TABLE) if (emp <= cap) return days;
+      return 22 + Math.ceil((emp - 10700) / 2200);
+    }
+    const roundHalf = n => Math.round(n * 2) / 2;
+    const fmt = n => Number.isFinite(n) ? n.toFixed(2) : '—';
+    const fmt1 = n => Number.isFinite(n) ? n.toFixed(1) : '—';
+
+    function getOpts() {
+      return {
+        auditType: document.getElementById('auditType').value,
+        repFactor: +document.getElementById('repFactor').value,
+        contractFactor: +document.getElementById('contractFactor').value,
+        reduction: +document.getElementById('reduction').value
+      };
+    }
+
+    function effFTE(s, opts) {
+      return s.core + s.support + s.repetitive * opts.repFactor + s.contract * opts.contractFactor;
+    }
+
+    // ----- URL state -----
+    function saveStateToURL() {
+      const state = { sites, opts: getOpts() };
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+      history.replaceState(null, '', '#' + encoded);
+    }
+    function loadStateFromURL() {
+      try {
+        if (!location.hash || location.hash.length < 2) return false;
+        const decoded = decodeURIComponent(escape(atob(location.hash.slice(1))));
+        const state = JSON.parse(decoded);
+        if (state.sites && Array.isArray(state.sites)) {
+          sites = state.sites;
+          if (state.opts) {
+            document.getElementById('auditType').value = state.opts.auditType || 'initial';
+            document.getElementById('repFactor').value = state.opts.repFactor || '0.5';
+            document.getElementById('contractFactor').value = state.opts.contractFactor || '1';
+            document.getElementById('reduction').value = state.opts.reduction || '0';
+          }
+          return true;
+        }
+      } catch (e) { console.warn('Failed to load state from URL', e); }
+      return false;
+    }
+
+    // ----- Rendering: sites table -----
+    function renderRows() {
+      const opts = getOpts();
+      const body = document.getElementById('sitesBody');
+      body.innerHTML = sites.map((s, i) => `
+        <tr>
+          <td><input type="text" value="${escapeHtml(s.name)}" data-i="${i}" data-k="name"/></td>
+          <td>
+            <select data-i="${i}" data-k="type">
+              <option value="MS"${s.type === 'MS' ? ' selected' : ''}>MS</option>
+              <option value="SRSL"${s.type === 'SRSL' ? ' selected' : ''}>SA-RSL</option>
+            </select>
+          </td>
+          <td class="num"><input type="number" min="1" value="${s.shifts}" data-i="${i}" data-k="shifts"/></td>
+          <td class="num"><input type="number" min="0" value="${s.core}" data-i="${i}" data-k="core"/></td>
+          <td class="num"><input type="number" min="0" value="${s.support}" data-i="${i}" data-k="support"/></td>
+          <td class="num"><input type="number" min="0" value="${s.repetitive}" data-i="${i}" data-k="repetitive"/></td>
+          <td class="num"><input type="number" min="0" value="${s.contract}" data-i="${i}" data-k="contract"/></td>
+          <td class="num"><span class="effective">${effFTE(s, opts).toFixed(0)}</span></td>
+          <td class="row-actions">
+            <button class="icon-btn" data-del="${i}" aria-label="Remove site" title="Remove site">×</button>
+          </td>
+        </tr>
+      `).join('');
+
+      body.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', e => {
+          const i = +e.target.dataset.i, k = e.target.dataset.k;
+          sites[i][k] = e.target.type === 'number' ? +e.target.value : e.target.value;
+          recalc();
+        });
+      });
+      body.querySelectorAll('[data-del]').forEach(b => {
+        b.addEventListener('click', e => {
+          if (sites.length <= 1) {
+            alert('At least one site must remain.');
+            return;
+          }
+          sites.splice(+e.currentTarget.dataset.del, 1);
+          renderRows(); recalc();
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ----- Core calculation -----
+    function compute() {
+      const opts = getOpts();
+      const ms = sites.filter(s => s.type === 'MS');
+      const srsl = sites.filter(s => s.type === 'SRSL');
+
+      const log = [];
+      const breakdown = [];
+
+      log.push('═══ EFFECTIVE FTE PER SITE ═══');
+      sites.forEach(s => {
+        const e = effFTE(s, opts);
+        const breakdown_str = `core(${s.core}) + sup(${s.support}) + rep(${s.repetitive}×${opts.repFactor}) + con(${s.contract}×${opts.contractFactor})`;
+        log.push(`  ${s.name.padEnd(22)} ${s.type.padEnd(5)}  ${e.toFixed(1)} FTE  [${breakdown_str}]`);
+      });
+
+      if (ms.length === 0) {
+        log.push('');
+        log.push('⚠  ERROR: At least one Manufacturing Site (MS) is required.');
+        log.push('   IATF rule: SA-RSL locations cannot be certified independently.');
+        return { final: null, msDays: 0, srslDays: 0, planning: 0.5, log, breakdown };
+      }
+
+      const msFTEs = ms.map(s => effFTE(s, opts));
+      const totalMSFTE = msFTEs.reduce((a, b) => a + b, 0);
+      const totalSRSLFTE = srsl.reduce((sum, s) => sum + effFTE(s, opts), 0);
+
+      log.push('');
+      log.push('═══ APPORTIONMENT (IATF Rules 6th Ed. §5) ═══');
+      log.push(`  Total MS FTE:     ${totalMSFTE.toFixed(1)}`);
+      log.push(`  Total SA-RSL FTE: ${totalSRSLFTE.toFixed(1)}`);
+
+      let msTotalDays = 0;
+      log.push('');
+      log.push('═══ MANUFACTURING SITE AUDIT DAYS ═══');
+      ms.forEach((s, i) => {
+        const ratio = totalMSFTE > 0 ? msFTEs[i] / totalMSFTE : 0;
+        const apportioned = totalSRSLFTE * ratio;
+        const auditFTE = msFTEs[i] + apportioned;
+        const baseDays = lookupBase(auditFTE);
+        let days = Math.max(1.5, baseDays);
+        let shiftAdj = 0;
+        if (s.shifts > 1) {
+          shiftAdj = days * 0.1 * (s.shifts - 1);
+          days += shiftAdj;
+        }
+        const minTriggered = baseDays < 1.5;
+        log.push(`  ${s.name}`);
+        log.push(`    own FTE = ${msFTEs[i].toFixed(1)}`);
+        log.push(`    apportioned SA-RSL = ${apportioned.toFixed(1)} (ratio ${(ratio * 100).toFixed(1)}%)`);
+        log.push(`    audit FTE = ${auditFTE.toFixed(1)} → table lookup: ${baseDays}d${minTriggered ? ' (raised to 1.5d minimum)' : ''}`);
+        if (shiftAdj > 0) log.push(`    shift adjustment (${s.shifts} shifts): +${shiftAdj.toFixed(2)}d`);
+        log.push(`    site total: ${days.toFixed(2)}d`);
+        msTotalDays += days;
+        breakdown.push({
+          name: s.name, type: 'MS',
+          ownFTE: msFTEs[i],
+          apportioned,
+          auditFTE,
+          baseDays: Math.max(1.5, baseDays),
+          shiftAdj,
+          siteTotal: days
+        });
+      });
+
+      log.push('');
+      log.push('═══ SA-RSL AUDIT DAYS ═══');
+      const srslPerSite = 0.5;
+      const srslTotalDays = srsl.length * srslPerSite;
+      if (srsl.length === 0) {
+        log.push('  (no SA-RSL in scope)');
+      } else {
+        srsl.forEach(s => {
+          log.push(`  ${s.name}: 0.5d (IATF mandatory minimum per SA-RSL)`);
+          breakdown.push({
+            name: s.name, type: 'SRSL',
+            ownFTE: effFTE(s, opts),
+            apportioned: 0,
+            auditFTE: 0,
+            baseDays: 0.5,
+            shiftAdj: 0,
+            siteTotal: 0.5
+          });
+        });
+      }
+
+      const planning = 0.5;
+      log.push('');
+      log.push('═══ AGGREGATION ═══');
+      log.push(`  Manufacturing subtotal:  ${msTotalDays.toFixed(2)}d`);
+      log.push(`  SA-RSL subtotal:         ${srslTotalDays.toFixed(2)}d`);
+      log.push(`  Off-site planning:       ${planning.toFixed(2)}d (IATF mandatory)`);
+
+      let subtotal = msTotalDays + srslTotalDays + planning;
+      log.push(`  ─────────────────────────`);
+      log.push(`  Subtotal:                ${subtotal.toFixed(2)}d`);
+
+      if (opts.reduction !== 0) {
+        const reduced = subtotal * (1 + opts.reduction / 100);
+        log.push(`  Total reduction:         ${opts.reduction}% (IATF cap: −30%)`);
+        log.push(`  After reduction:         ${reduced.toFixed(2)}d`);
+        subtotal = reduced;
+      }
+
+      let final = subtotal;
+      const typeLabel = { initial: 'Initial (Stage 1 + 2)', surveillance: 'Surveillance', recert: 'Recertification' }[opts.auditType];
+      if (opts.auditType === 'surveillance') {
+        final = subtotal / 3;
+        log.push(`  Surveillance × ⅓:        ${final.toFixed(2)}d`);
+      } else if (opts.auditType === 'recert') {
+        final = subtotal * 2 / 3;
+        log.push(`  Recertification × ⅔:     ${final.toFixed(2)}d`);
+      }
+
+      final = roundHalf(final);
+      log.push('');
+      log.push(`▶ FINAL (${typeLabel}): ${final}d (rounded to nearest 0.5)`);
+
+      return { final, msDays: roundHalf(msTotalDays), srslDays: srslTotalDays, planning, log, breakdown, typeLabel };
+    }
+
+    function renderBreakdown(breakdown) {
+      const body = document.getElementById('breakdownBody');
+      if (breakdown.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--muted); font-style: italic; padding: 20px">no sites to display</td></tr>';
+        return;
+      }
+      body.innerHTML = breakdown.map(b => {
+        const isMS = b.type === 'MS';
+        return `<tr>
+          <td>${escapeHtml(b.name)}</td>
+          <td><span class="tag ${isMS ? 'ms' : 'srsl'}">${isMS ? 'MS' : 'SA-RSL'}</span></td>
+          <td class="num">${b.ownFTE.toFixed(1)}</td>
+          <td class="num">${isMS ? b.apportioned.toFixed(1) : '—'}</td>
+          <td class="num">${isMS ? b.auditFTE.toFixed(1) : '—'}</td>
+          <td class="num">${b.baseDays.toFixed(2)}</td>
+          <td class="num">${b.shiftAdj > 0 ? '+' + b.shiftAdj.toFixed(2) : '—'}</td>
+          <td class="num"><strong>${b.siteTotal.toFixed(2)}</strong></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function colorizeLog(text) {
+      return escapeHtml(text)
+        .replace(/^(═══.+═══)$/gm, '<span class="log-section">$1</span>')
+        .replace(/^(▶ FINAL.+)$/gm, '<span class="log-result">$1</span>')
+        .replace(/(⚠.+)$/gm, '<span style="color:#e89c5e">$1</span>');
+    }
+
+    function recalc() {
+      const result = compute();
+      document.getElementById('total').textContent = result.final !== null ? fmt1(result.final) : '—';
+      document.getElementById('msDays').textContent = fmt1(result.msDays);
+      document.getElementById('srslDays').textContent = fmt1(result.srslDays);
+      document.getElementById('totalSub').textContent = result.typeLabel || 'awaiting input';
+      const srslCount = sites.filter(s => s.type === 'SRSL').length;
+      document.getElementById('srslSub').textContent = `across ${srslCount} location${srslCount === 1 ? '' : 's'}`;
+      document.getElementById('log').innerHTML = colorizeLog(result.log.join('\n'));
+      renderBreakdown(result.breakdown);
+      renderRows.lastRefresh = Date.now();
+      // Update effective FTE inline in the input table without full re-render
+      const opts = getOpts();
+      document.querySelectorAll('#sitesBody tr').forEach((tr, i) => {
+        const cell = tr.querySelector('.effective');
+        if (cell && sites[i]) cell.textContent = effFTE(sites[i], opts).toFixed(0);
+      });
+      saveStateToURL();
+    }
+
+    // ----- Actions -----
+    document.getElementById('addSite').addEventListener('click', () => {
+      sites.push({ name: 'New site', type: 'MS', shifts: 1, core: 0, support: 0, repetitive: 0, contract: 0 });
+      renderRows();
+      recalc();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (!confirm('Reset all inputs to default example?')) return;
+      sites = JSON.parse(JSON.stringify(DEFAULT_SITES));
+      document.getElementById('auditType').value = 'initial';
+      document.getElementById('repFactor').value = '0.5';
+      document.getElementById('contractFactor').value = '1';
+      document.getElementById('reduction').value = '0';
+      renderRows();
+      recalc();
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const result = compute();
+      const opts = getOpts();
+      const payload = {
+        generated: new Date().toISOString(),
+        version: 'v0.1',
+        reference: 'IATF Rules 6th Edition · IAF MD 5:2023',
+        configuration: opts,
+        sites,
+        results: {
+          totalMandays: result.final,
+          manufacturingDays: result.msDays,
+          srslDays: result.srslDays,
+          planningDays: result.planning,
+          auditType: result.typeLabel
+        },
+        perSiteBreakdown: result.breakdown
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `iatf-mandays-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+      saveStateToURL();
+      try {
+        await navigator.clipboard.writeText(location.href);
+        const btn = document.getElementById('copyLinkBtn');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8l3.5 3.5L13 4" stroke-linecap="round" stroke-linejoin="round"/></svg> Link copied';
+        setTimeout(() => { btn.innerHTML = original; }, 1800);
+      } catch (e) {
+        prompt('Copy this link:', location.href);
+      }
+    });
+
+    ['auditType', 'repFactor', 'contractFactor', 'reduction'].forEach(id =>
+      document.getElementById(id).addEventListener('change', () => { renderRows(); recalc(); }));
+
+    // ----- Init -----
+    document.getElementById('generatedAt').textContent = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+
+    loadStateFromURL();
+    renderRows();
+    recalc();
+  </script>
+</body>
+</html>
